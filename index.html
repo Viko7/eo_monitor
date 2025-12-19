@@ -911,21 +911,21 @@
         function formatBytes(bytes) {
             if (bytes === 0) return '0 B';
             const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
+            if (i < 0) return bytes + ' B';
+            if (i >= sizes.length) return (bytes / Math.pow(k, sizes.length - 1)).toFixed(2) + ' ' + sizes[sizes.length - 1];
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
         function formatBps(bps) {
-            if (bps >= 1024 * 1024 * 1024) {
-                return (bps / (1024 * 1024 * 1024)).toFixed(2) + ' Gbps';
-            } else if (bps >= 1024 * 1024) {
-                return (bps / (1024 * 1024)).toFixed(2) + ' Mbps';
-            } else if (bps >= 1024) {
-                return (bps / 1024).toFixed(2) + ' Kbps';
-            } else {
-                return bps + ' bps';
-            }
+            if (bps === 0) return '0 bps';
+            const k = 1024;
+            const sizes = ['bps', 'Kbps', 'Mbps', 'Gbps', 'Tbps', 'Pbps', 'Ebps', 'Zbps', 'Ybps'];
+            const i = Math.floor(Math.log(bps) / Math.log(k));
+            if (i < 0) return bps + ' bps';
+            if (i >= sizes.length) return (bps / Math.pow(k, sizes.length - 1)).toFixed(2) + ' ' + sizes[sizes.length - 1];
+            return parseFloat((bps / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
         async function initDashboard() {
@@ -995,10 +995,37 @@
             updateTopAnalysisSection(results);
         }
 
+        function getBestUnit(maxValue, type = 'bytes') {
+            const k = 1024;
+            const byteUnits = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+            const bitUnits = ['bps', 'Kbps', 'Mbps', 'Gbps', 'Tbps', 'Pbps'];
+            const units = type === 'bandwidth' ? bitUnits : byteUnits;
+
+            if (maxValue === 0) return { unit: units[0], divisor: 1 };
+
+            let i = Math.floor(Math.log(maxValue) / Math.log(k));
+            if (i < 0) i = 0;
+            if (i >= units.length) i = units.length - 1;
+
+            return { unit: units[i], divisor: Math.pow(k, i) };
+        }
+
         function updateTrafficSection(results) {
             const metrics = metricsConfig.traffic;
             const series = [];
             let timeData = [];
+
+            // Calculate global max
+            let globalMax = 0;
+            metrics.forEach(metric => {
+                const data = results[metric];
+                if (data && data.type === 'time') {
+                    const max = Math.max(...data.valueData);
+                    if (max > globalMax) globalMax = max;
+                }
+            });
+
+            const { unit, divisor } = getBestUnit(globalMax, 'bytes');
 
             metrics.forEach(metric => {
                 const data = results[metric];
@@ -1009,16 +1036,18 @@
 
                 if (timeData.length === 0) timeData = data.timeData;
 
-                // Chart Data (MB)
-                const valueDataMB = data.valueData.map(v => (v / (1024 * 1024)).toFixed(2));
+                // Chart Data (Dynamic Unit)
+                const valueData = data.valueData.map(v => (v / divisor).toFixed(2));
                 
                 series.push({
                     name: metricLabels[metric],
                     type: 'line',
                     smooth: true,
-                    data: valueDataMB,
+                    data: valueData,
                     itemStyle: { color: metricColors[metric] },
-                    areaStyle: { opacity: 0.1 }
+                    areaStyle: { opacity: 0.1 },
+                    // Store raw data for tooltip
+                    rawData: data.valueData
                 });
             });
 
@@ -1026,14 +1055,20 @@
                 tooltip: { trigger: 'axis', formatter: (params) => {
                     let res = params[0].axisValue + '<br/>';
                     params.forEach(param => {
-                        res += `${param.marker}${param.seriesName}: ${param.value} MB<br/>`;
+                        // Access raw data using dataIndex
+                        const seriesIndex = param.seriesIndex;
+                        const dataIndex = param.dataIndex;
+                        const rawVal = series[seriesIndex].rawData[dataIndex];
+                        const formattedVal = formatBytes(rawVal);
+                        
+                        res += `${param.marker}${param.seriesName}: ${formattedVal}<br/>`;
                     });
                     return res;
                 }},
                 legend: { data: metrics.map(m => metricLabels[m]), bottom: 0 },
                 grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
                 xAxis: { type: 'category', boundaryGap: false, data: timeData },
-                yAxis: { type: 'value', name: 'MB' },
+                yAxis: { type: 'value', name: unit },
                 series: series
             };
             chartTraffic.setOption(option);
@@ -1044,6 +1079,18 @@
             const series = [];
             let timeData = [];
 
+            // Calculate global max
+            let globalMax = 0;
+            metrics.forEach(metric => {
+                const data = results[metric];
+                if (data && data.type === 'time') {
+                    const max = Math.max(...data.valueData);
+                    if (max > globalMax) globalMax = max;
+                }
+            });
+
+            const { unit, divisor } = getBestUnit(globalMax, 'bandwidth');
+
             metrics.forEach(metric => {
                 const data = results[metric];
                 if (!data || data.type !== 'time') return;
@@ -1053,16 +1100,18 @@
 
                 if (timeData.length === 0) timeData = data.timeData;
 
-                // Chart Data (Mbps)
-                const valueDataMbps = data.valueData.map(v => (v / (1024 * 1024)).toFixed(2));
+                // Chart Data (Dynamic Unit)
+                const valueData = data.valueData.map(v => (v / divisor).toFixed(2));
                 
                 series.push({
                     name: metricLabels[metric],
                     type: 'line',
                     smooth: true,
-                    data: valueDataMbps,
+                    data: valueData,
                     itemStyle: { color: metricColors[metric] },
-                    areaStyle: { opacity: 0.1 }
+                    areaStyle: { opacity: 0.1 },
+                    // Store raw data
+                    rawData: data.valueData
                 });
             });
 
@@ -1070,14 +1119,18 @@
                 tooltip: { trigger: 'axis', formatter: (params) => {
                     let res = params[0].axisValue + '<br/>';
                     params.forEach(param => {
-                        res += `${param.marker}${param.seriesName}: ${param.value} Mbps<br/>`;
+                        const seriesIndex = param.seriesIndex;
+                        const dataIndex = param.dataIndex;
+                        const rawVal = series[seriesIndex].rawData[dataIndex];
+                        const formattedVal = formatBps(rawVal);
+                        res += `${param.marker}${param.seriesName}: ${formattedVal}<br/>`;
                     });
                     return res;
                 }},
                 legend: { data: metrics.map(m => metricLabels[m]), bottom: 0 },
                 grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
                 xAxis: { type: 'category', boundaryGap: false, data: timeData },
-                yAxis: { type: 'value', name: 'Mbps' },
+                yAxis: { type: 'value', name: unit },
                 series: series
             };
             chartBandwidth.setOption(option);
@@ -1122,6 +1175,25 @@
             const series = [];
             let timeData = [];
 
+            // Calculate global max for Flux and Bandwidth separately
+            let maxFlux = 0;
+            let maxBandwidth = 0;
+
+            metrics.forEach(metric => {
+                const data = results[metric];
+                if (data && data.type === 'time') {
+                    const max = Math.max(...data.valueData);
+                    if (metric.includes('Flux')) {
+                        if (max > maxFlux) maxFlux = max;
+                    } else if (metric.includes('Bandwidth')) {
+                        if (max > maxBandwidth) maxBandwidth = max;
+                    }
+                }
+            });
+
+            const fluxUnit = getBestUnit(maxFlux, 'bytes');
+            const bandwidthUnit = getBestUnit(maxBandwidth, 'bandwidth');
+
             metrics.forEach(metric => {
                 const data = results[metric];
                 if (!data || data.type !== 'time') return;
@@ -1141,16 +1213,22 @@
                 if (timeData.length === 0) timeData = data.timeData;
 
                 let chartData = [];
+                let unit = '';
+                let divisor = 1;
+
                 // Normalize data for chart
                 if (metric.includes('Flux')) {
-                    // Bytes -> MB
-                    chartData = data.valueData.map(v => (v / (1024 * 1024)).toFixed(2));
+                    unit = fluxUnit.unit;
+                    divisor = fluxUnit.divisor;
                 } else if (metric.includes('Bandwidth')) {
-                    // bps -> Mbps
-                    chartData = data.valueData.map(v => (v / (1024 * 1024)).toFixed(2));
+                    unit = bandwidthUnit.unit;
+                    divisor = bandwidthUnit.divisor;
                 } else {
-                    chartData = data.valueData;
+                    unit = '';
+                    divisor = 1;
                 }
+
+                chartData = data.valueData.map(v => (v / divisor).toFixed(2));
 
                 series.push({
                     name: metricLabels[metric],
@@ -1158,12 +1236,52 @@
                     smooth: true,
                     data: chartData,
                     itemStyle: { color: metricColors[metric] },
-                    areaStyle: { opacity: 0.1 }
+                    areaStyle: { opacity: 0.1 },
+                    customUnit: unit,
+                    rawData: data.valueData
                 });
             });
 
             const option = {
-                tooltip: { trigger: 'axis' },
+                tooltip: { 
+                    trigger: 'axis',
+                    formatter: (params) => {
+                        let res = params[0].axisValue + '<br/>';
+                        params.forEach(param => {
+                            const seriesIndex = param.seriesIndex;
+                            const dataIndex = param.dataIndex;
+                            const rawVal = series[seriesIndex].rawData[dataIndex];
+                            
+                            // Determine type based on metric name in series
+                            const metricName = series[seriesIndex].name;
+                            // Find metric key by name (reverse lookup or check string)
+                            // Easier: check customUnit or infer from series
+                            
+                            let formattedVal = '';
+                            if (series[seriesIndex].customUnit === '次' || series[seriesIndex].customUnit === '') {
+                                formattedVal = rawVal.toLocaleString();
+                            } else {
+                                // Guess type: Bandwidth if unit ends with bps
+                                // Flux if unit ends with B
+                                // But we have customUnit, which is just the global unit.
+                                // Better: Check metric key. But we don't have metric key here easily.
+                                // We can store formatting function type in series.
+                                
+                                const unit = series[seriesIndex].customUnit || '';
+                                if (unit.includes('bps')) {
+                                    formattedVal = formatBps(rawVal);
+                                } else if (unit.includes('B')) {
+                                    formattedVal = formatBytes(rawVal);
+                                } else {
+                                    formattedVal = rawVal.toLocaleString();
+                                }
+                            }
+
+                            res += `${param.marker}${param.seriesName}: ${formattedVal}<br/>`;
+                        });
+                        return res;
+                    }
+                },
                 legend: { data: metrics.map(m => metricLabels[m]), bottom: 0 },
                 grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
                 xAxis: { type: 'category', boundaryGap: false, data: timeData },
@@ -1207,31 +1325,138 @@
             chartPerformance.setOption(option);
         }
 
+        const renderTopChart = (results, chartInstance, metricName, mapObject = null) => {
+            const data = results[metricName];
+            if (!data || data.type !== 'top' || !data.data) return;
+
+            const sortedData = [...data.data].sort((a, b) => b.Value - a.Value).slice(0, 10);
+            
+            let unit = '';
+            let divisor = 1;
+            
+            // Determine Label
+            let label = metricLabels[metricName];
+            if (!label) {
+                if (metricName.includes('outFlux')) label = '流量';
+                else if (metricName.includes('request')) label = '请求数';
+                else label = metricName;
+            }
+            
+            if (metricName.includes('outFlux')) {
+                const maxVal = sortedData.length > 0 ? sortedData[0].Value : 0;
+                const best = getBestUnit(maxVal, 'bytes');
+                unit = best.unit;
+                divisor = best.divisor;
+            } else {
+                unit = '次';
+                divisor = 1;
+            }
+
+            const yAxisData = sortedData.map(item => mapObject?.[item.Key] || item.Key).reverse();
+            const seriesData = sortedData.map(item => (item.Value / divisor).toFixed(2)).reverse();
+
+            // Determine color based on dimension
+            let color = '#3b82f6';
+            const lowerName = metricName.toLowerCase();
+            if (lowerName.includes('country') || lowerName.includes('uadevice')) color = '#3b82f6';
+            else if (lowerName.includes('province') || lowerName.includes('resourcetype')) color = '#f59e0b';
+            else if (lowerName.includes('statuscode') || lowerName.includes('referer') || lowerName.endsWith('_ua')) color = '#8b5cf6';
+            else if (lowerName.includes('domain') || lowerName.includes('uabrowser')) color = '#06b6d4';
+            else if (lowerName.includes('url') || lowerName.includes('uaos')) color = '#10b981';
+            else if (lowerName.includes('sip')) color = '#ef4444';
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: (params) => {
+                         const param = params[0];
+                         let name = param.name;
+                         if (name.length > 100) name = name.substring(0, 100) + '...';
+                         
+                         // Get raw value
+                         // For Top charts, sortedData is used.
+                         // We need to find the raw value.
+                         // sortedData[index] corresponds to the bar.
+                         // However, the chart is reversed.
+                         // yAxisData and seriesData are reversed sortedData.
+                         // param.dataIndex 0 is the bottom bar (which was the LAST in reversed arrays, so FIRST in sortedData?)
+                         // Let's trace:
+                         // sortedData: [Top1, Top2, ... Top10]
+                         // yAxisData: [Top10, ... Top1] (reversed)
+                         // seriesData: [Top10Value, ... Top1Value] (reversed)
+                         // ECharts category axis default: index 0 is at bottom.
+                         // So dataIndex 0 matches yAxisData[0] -> Top10.
+                         // dataIndex 9 matches yAxisData[9] -> Top1.
+                         
+                         // We can just reverse map or store raw data in series.
+                         // Let's store raw data in series parallel to seriesData.
+                         
+                         const rawVal = sortedData[sortedData.length - 1 - param.dataIndex].Value;
+                         
+                         let formattedVal = '';
+                         if (metricName.includes('outFlux')) {
+                             formattedVal = formatBytes(rawVal);
+                         } else {
+                             formattedVal = rawVal.toLocaleString() + ' ' + unit;
+                         }
+                         
+                         return `${name}<br/>${param.marker}${label}: ${formattedVal}`;
+                    }
+                },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'value', name: unit },
+                yAxis: { 
+                    type: 'category', 
+                    data: yAxisData,
+                    axisLabel: {
+                        formatter: function (value) {
+                            if (value.length > 20) return value.substring(0, 20) + '...';
+                            return value;
+                        }
+                    }
+                },
+                series: [
+                    {
+                        name: label,
+                        type: 'bar',
+                        data: seriesData,
+                        itemStyle: { color: color },
+                        label: { show: true, position: 'right' }
+                    }
+                ]
+            };
+            chartInstance.setOption(option);
+        };
+
         function updateTopAnalysisSection(results) {
-            updateTopCountryChart(results);
-            updateTopProvinceChart(results);
-            updateTopStatusCodeChart(results);
-            updateTopDomainChart(results);
-            updateTopUrlChart(results);
-            updateTopResourceTypeChart(results);
-            updateTopSipChart(results);
-            updateTopRefererChart(results);
-            updateTopUaDeviceChart(results);
-            updateTopUaBrowserChart(results);
-            updateTopUaOsChart(results);
-            updateTopUaChart(results);
-            updateTopRequestCountryChart(results);
-            updateTopRequestProvinceChart(results);
-            updateTopRequestStatusCodeChart(results);
-            updateTopRequestDomainChart(results);
-            updateTopRequestUrlChart(results);
-            updateTopRequestResourceTypeChart(results);
-            updateTopRequestSipChart(results);
-            updateTopRequestRefererChart(results);
-            updateTopRequestUaDeviceChart(results);
-            updateTopRequestUaBrowserChart(results);
-            updateTopRequestUaOsChart(results);
-            updateTopRequestUaChart(results);
+            // Flux Charts
+            renderTopChart(results, chartTopCountry, 'l7Flow_outFlux_country', countryMap);
+            renderTopChart(results, chartTopProvince, 'l7Flow_outFlux_province', provinceMap);
+            renderTopChart(results, chartTopStatusCode, 'l7Flow_outFlux_statusCode');
+            renderTopChart(results, chartTopDomain, 'l7Flow_outFlux_domain');
+            renderTopChart(results, chartTopUrl, 'l7Flow_outFlux_url');
+            renderTopChart(results, chartTopResourceType, 'l7Flow_outFlux_resourceType');
+            renderTopChart(results, chartTopSip, 'l7Flow_outFlux_sip');
+            renderTopChart(results, chartTopReferer, 'l7Flow_outFlux_referer');
+            renderTopChart(results, chartTopUaDevice, 'l7Flow_outFlux_uaDevice');
+            renderTopChart(results, chartTopUaBrowser, 'l7Flow_outFlux_uaBrowser');
+            renderTopChart(results, chartTopUaOs, 'l7Flow_outFlux_uaOs');
+            renderTopChart(results, chartTopUa, 'l7Flow_outFlux_ua');
+
+            // Request Charts
+            renderTopChart(results, chartTopRequestCountry, 'l7Flow_request_country', countryMap);
+            renderTopChart(results, chartTopRequestProvince, 'l7Flow_request_province', provinceMap);
+            renderTopChart(results, chartTopRequestStatusCode, 'l7Flow_request_statusCode');
+            renderTopChart(results, chartTopRequestDomain, 'l7Flow_request_domain');
+            renderTopChart(results, chartTopRequestUrl, 'l7Flow_request_url');
+            renderTopChart(results, chartTopRequestResourceType, 'l7Flow_request_resourceType');
+            renderTopChart(results, chartTopRequestSip, 'l7Flow_request_sip');
+            renderTopChart(results, chartTopRequestReferer, 'l7Flow_request_referer');
+            renderTopChart(results, chartTopRequestUaDevice, 'l7Flow_request_uaDevice');
+            renderTopChart(results, chartTopRequestUaBrowser, 'l7Flow_request_uaBrowser');
+            renderTopChart(results, chartTopRequestUaOs, 'l7Flow_request_uaOs');
+            renderTopChart(results, chartTopRequestUa, 'l7Flow_request_ua');
         }
 
         function updateTopCountryChart(results) {
