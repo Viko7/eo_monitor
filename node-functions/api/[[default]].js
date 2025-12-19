@@ -155,6 +155,10 @@ app.get('/traffic', async (req, res) => {
                 "MetricNames": [ metric ],
                 "ZoneIds": [ "*" ]
             };
+
+            if (interval && interval !== 'auto') {
+                params["Interval"] = interval;
+            }
             
             // CommonClient setup
             const commonClientConfig = {

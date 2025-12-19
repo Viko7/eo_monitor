@@ -125,7 +125,7 @@
                     <option value="today">当天</option>
                     <option value="3d">近 3 天</option>
                     <option value="7d">近 7 天</option>
-                    <option value="15d">近 15 天</option>
+                    <option value="14d">近 14 天</option>
                     <option value="31d">近 31 天</option>
                 </select>
             </div>
@@ -868,7 +868,7 @@
                     break;
                 case '3d': startTime = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); break;
                 case '7d': startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
-                case '15d': startTime = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000); break;
+                case '14d': startTime = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000); break;
                 case '31d': startTime = new Date(now.getTime() - 31 * 24 * 60 * 60 * 1000); break;
                 default: startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             }
@@ -931,7 +931,7 @@
             // Context for formatting
             const range = document.getElementById('timeRange')?.value || '24h';
             const interval = document.getElementById('interval')?.value || 'auto';
-            const longRanges = ['3d', '7d', '15d', '31d'];
+            const longRanges = ['3d', '7d', '14d', '31d'];
             
             // Auto-detect if interval is effectively 'day'
             let isDayInterval = interval === 'day';
@@ -941,7 +941,7 @@
                 if (diff >= 82800) isDayInterval = true;
             }
             // If auto and range is 31d/15d, it usually defaults to day
-            if (interval === 'auto' && ['15d', '31d'].includes(range)) {
+            if (interval === 'auto' && ['14d', '31d'].includes(range)) {
                 // Check if we have few points (e.g. < 32 for 31d), likely day
                 if (details.length <= 32) isDayInterval = true;
             }
@@ -1061,6 +1061,13 @@
             // Show loading
             document.querySelectorAll('[id^="kpi_"]').forEach(el => el.innerText = '加载中...');
 
+            // Check time range for Security Metrics
+            const { startTime, endTime } = calculateTimeRange();
+            const start = new Date(startTime);
+            const end = new Date(endTime);
+            // Allow a small buffer (e.g., 1 minute) for "7 days" check to handle slight offsets
+            const isSecuritySupported = (end - start) <= (14 * 24 * 60 * 60 * 1000 + 60000);
+
             // Fetch all metrics
             const allMetrics = [
                 ...metricsConfig.traffic,
@@ -1068,7 +1075,7 @@
                 ...metricsConfig.originPull,
                 ...metricsConfig.requests,
                 ...metricsConfig.performance,
-                ...metricsConfig.security,
+                ...(isSecuritySupported ? metricsConfig.security : []),
                 ...metricsConfig.topAnalysis
             ];
 
@@ -1460,6 +1467,39 @@
         //5.1. Security Section
         function updateSecuritySection(results) {
             const metrics = metricsConfig.security;
+            
+            // Check time range limit
+            const { startTime, endTime } = calculateTimeRange();
+            const start = new Date(startTime);
+            const end = new Date(endTime);
+            // Allow a small buffer
+            if ((end - start) > (14 * 24 * 60 * 60 * 1000 + 60000)) {
+                const kpiEl = document.getElementById('kpi_security_hits');
+                if (kpiEl) {
+                    kpiEl.innerText = "范围过大";
+                    kpiEl.parentElement.querySelector('p').innerText = "仅支持查询14天内的数据";
+                    kpiEl.parentElement.querySelector('p').classList.add('text-red-500');
+                }
+                
+                chartSecurity.clear();
+                chartSecurity.setOption({
+                     title: {
+                         text: '该指标仅支持查询14天内的数据',
+                         left: 'center',
+                         top: 'center',
+                         textStyle: { color: '#9ca3af', fontSize: 14, fontWeight: 'normal' }
+                     }
+                });
+                return;
+            }
+            
+            // Reset error style if applicable
+            const kpiEl = document.getElementById('kpi_security_hits');
+            if (kpiEl && kpiEl.parentElement.querySelector('p').classList.contains('text-red-500')) {
+                kpiEl.parentElement.querySelector('p').innerText = "DDoS/CC 防护总拦截次数";
+                kpiEl.parentElement.querySelector('p').classList.remove('text-red-500');
+            }
+
             const series = [];
             let timeData = [];
             let totalHits = 0;
@@ -1485,7 +1525,6 @@
             });
 
             // Update KPI
-            const kpiEl = document.getElementById('kpi_security_hits');
             if (kpiEl) {
                 const formatted = formatCount(totalHits);
                 kpiEl.innerText = formatted;
